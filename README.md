@@ -3,43 +3,38 @@ Gnublin_Debian
 
 Scripts to automatically create a Debian rootfs image and/or a complete, bootable SD-card.
 
-# Author: Ingmar Klein (ingmar.klein@hs-augsburg.de)
-# Created in scope of the "Embedded Linux" lecture, held by Professor Hubert Hoegl, at the University of Applied Sciences Augsburg, 2012
+Author: Ingmar Klein (ingmar.klein@hs-augsburg.de)
+Created in scope of the "Embedded Linux" lecture, held by Professor Hubert Hoegl, at the University of Applied Sciences Augsburg, 2012
 
-# This program (including documentation) is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License version 3 (GPLv3; http://www.gnu.org/licenses/gpl-3.0.html )
-# for more details.
+This program (including documentation) is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License version 3 (GPLv3; http://www.gnu.org/licenses/gpl-3.0.html )
+for more details.
 
 
-#########################################
-##### README: Gnublin Debian scripts#####
-#########################################
+README: Gnublin Debian scripts
+------------------------------
 
 
 This Readme should explain how to use the debian build-scripts. It also explains the settings and their meaning.
 
 
 
----------------------------------
-				|
-Overview:			|
-_________			|
-				|
-				|
-1) Host System Requirements	|
-2) Files			|
-3) Settings			|	
-4) Running the script		|
-5) Log-Files			|
-6) Logging In			|
-				|
----------------------------------
+	
+Overview:
+---------
+
+1. Host System Requirements
+2. Files
+3. Settings
+4. Running the script
+5. Log-Files
+6. Logging In
 
 
 
-###############################
-# 1) Host System Requirements # 
-###############################
+
+1) Host System Requirements 
+---------------------------
 
 You need a machine with at least Debian Squeeze, or Ubuntu 10.04. .
 Enough disk space for the build process (~2GB free space) and maybe 512MB RAM. Internet connection is mandatory for this script (on the host machine, not on the gnublin).
@@ -47,9 +42,8 @@ No internet connection equals no build process!
 
 
 
-##############
-## 2) Files ##
-##############
+2) Files
+--------
 
 - build_debian_system.sh : Main script file, running the functions defined in the "build_functions.sh". This is what you run in shell.
 
@@ -59,9 +53,9 @@ No internet connection equals no build process!
 
 
 
-#################
-## 3) Settings ##
-#################
+
+3) Settings
+-----------
 
 ATTENTION:
 You must (!) edit the "general_settings.sh" to fit your host system and your needs, before running the main script!
@@ -80,9 +74,9 @@ The variable "additional_packages" just is a list of packages that should be ins
 
 
 
-#############################
-### 4) Running the script ###
-#############################
+
+4) Running the script
+---------------------
 
 Running the script is as easy as doing the following:
 
@@ -96,9 +90,9 @@ Running the script is as easy as doing the following:
 
 
 
-##################
-## 5) Log-Files ##
-##################
+
+5) Log-Files
+------------
 
 There are a number of log files that get created at run time. The main log file is located in the "output_dir"-folder.
 This log file includes all main points in the script. Some detail information gets logged elsewhere, but that can be seen in the script code.
@@ -106,30 +100,28 @@ This log file includes all main points in the script. Some detail information ge
 
 
 
-##########################
-##### 6) Logging In ######
-##########################
+
+6) Logging In
+-------------
 
 The system gets built with a standard root account with password. The initial login data is the following:
 
-----------------
+
 
 User: root
 Password: root
 
-----------------
+
 
 
 If you want to change the root password, just run the command "passwd root" and follow the instructions.
 If you want to add a normal user account, run "adduser 'username' ", obviously with the name you want your user to have.
-##################
-### ATTENTION: ###
-##################
+
+ATTENTION:
+----------
 There is a Bug that causes the system to ask you to change the password on each system start, if the system time wasn't set when invoking passwd!
 Make sure that the system time is set to something else than 01/01/1970, if you intend to change the password!
 
-
-____________________________
 
 HAVE FUN! 
 
