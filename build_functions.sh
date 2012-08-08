@@ -76,7 +76,7 @@ do
 	else
 		fn_my_echo "Package '${1}' is not installed yet.
 Trying to install it now!"
-		apt-get install -y ${1}
+		apt-get install -y --force-yes ${1}
 		if [ "$?" = "0" ]
 		then
 			fn_my_echo "'${1}' installed sueccessfully!"
@@ -190,15 +190,14 @@ fn_my_echo "Entering chroot environment NOW!"
 
 fn_my_echo "Starting the second stage of debootstrap now."
 /usr/sbin/chroot ${output_dir}/mnt_debootstrap /bin/bash -c "
+mkdir -p /usr/share/man/man1/
 /debootstrap/debootstrap --second-stage 2>>/deboostrap_stg2_errors.txt
 cd /root 2>>/deboostrap_stg2_errors.txt
+
 cat <<END > /etc/apt/sources.list 2>>/deboostrap_stg2_errors.txt
-deb http://ftp.de.debian.org/debian ${debian_target_version} main contrib non-free
-deb-src http://ftp.de.debian.org/debian ${debian_target_version} main contrib non-free
-deb http://ftp.debian.org/debian/ ${debian_target_version}-updates main contrib non-free
-deb-src http://ftp.debian.org/debian/ ${debian_target_version}-updates main contrib non-free
-deb http://security.debian.org/ ${debian_target_version}/updates main contrib non-free
-deb-src http://security.debian.org/ ${debian_target_version}/updates main contrib non-free
+deb http://ftp.uk.debian.org/emdebian/grip ${debian_target_version} main dev doc debug java
+deb-src http://ftp.uk.debian.org/emdebian/grip ${debian_target_version} main
+
 END
 
 apt-get update
@@ -222,7 +221,7 @@ iface lo inet loopback
 iface eth0 inet dhcp
 END
 
-echo gnublin-debian > /etc/hostname 2>>/deboostrap_stg2_errors.txt
+echo gnublin-emdebian > /etc/hostname 2>>/deboostrap_stg2_errors.txt
 
 echo \"127.0.0.1 localhost\" >> /etc/hosts 2>>/deboostrap_stg2_errors.txt
 echo \"127.0.0.1 gnublin-debian\" >> /etc/hosts 2>>/deboostrap_stg2_errors.txt
@@ -264,14 +263,14 @@ mount -t proc proc ${output_dir}/mnt_debootstrap/proc
 
 /usr/sbin/chroot ${output_dir}/mnt_debootstrap /bin/sh -c "
 export LANG=C 2>>/deboostrap_stg2_errors.txt
-apt-get -y install apt-utils dialog locales manpages man-db 2>>/deboostrap_stg2_errors.txt
+apt-get -y --force-yes  install apt-utils dialog locales manpages man-db 2>>/deboostrap_stg2_errors.txt
 
 cat <<END > /etc/apt/apt.conf 2>>/deboostrap_stg2_errors.txt
 APT::Install-Recommends \"0\";
 APT::Install-Suggests \"0\";
 END
 
-apt-get -y -d install ${additional_packages} 2>>/deboostrap_stg2_errors.txt
+apt-get -d -y --force-yes install ${additional_packages} 2>>/deboostrap_stg2_errors.txt
 
 sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen 2>>/deboostrap_stg2_errors.txt	# enable locale
 locale-gen 2>>/deboostrap_stg2_errors.txt
@@ -367,12 +366,12 @@ echo "
 ##   | | |_ | . \` | |  | |  _ <| |      | | | . \` |   ##
 ##   | |__| | |\  | |__| | |_) | |____ _| |_| |\  |   ##
 ##    \_____|_| \_|\____/|____/|______|_____|_| \_|   ##
-##        _____         _      _                      ##
-##       |  __ \       | |    (_)                     ##
-##       | |  | |  ___ | |__   _   __ _  _ __         ##
-##       | |  | | / _ \| '_ \ | | / _\` || '_ \        ##
-##       | |__| ||  __/| |_) || || (_| || | | |       ##
-##       |_____/  \___||_.__/ |_| \__,_||_| |_|       ##
+##   ______               _      _     _              ##
+##  |  ____|             | |    | |   (_)             ##
+##  | |__   _ __ ___   __| | ___| |__  _  __ _ _ __   ##
+##  |  __| | '_ \` _ \ / _\` |/ _ \ '_ \| |/ _\` | '_ \  ##
+##  | |____| | | | | | (_| |  __/ |_) | | (_| | | | | ##
+##  |______|_| |_| |_|\__,_|\___|_.__/|_|\__,_|_| |_| ##
 ##                                                    ##
 ########################################################
 ########################################################
@@ -384,7 +383,7 @@ date_cur=`date` # needed further down as a very important part to circumvent the
 echo "#!/bin/sh
 
 date -s \"${date_cur}\" 2>>/post_deboostrap_errors.txt	# set the system date to prevent PAM from exhibiting its nasty DAY0 forced password change
-apt-get -y install ${additional_packages} 2>>/post_deboostrap_errors.txt && apt-get clean	# install the already downloaded packages
+apt-get -y --force-yes install ${additional_packages} 2>>/post_deboostrap_errors.txt && apt-get clean	# install the already downloaded packages
 
 if [ "${i2c_hwclock}" = "yes" ]
 then 

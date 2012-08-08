@@ -1,7 +1,7 @@
-Gnublin_Debian
+Gnublin_Emdebian
 ==============
 
-Scripts to automatically create a Debian rootfs image and/or a complete, bootable SD-card.
+Scripts to automatically create a Emdebian rootfs image and/or a complete, bootable SD-card.
 
 Author: Ingmar Klein (ingmar.klein@hs-augsburg.de)
 Created in scope of the "Embedded Linux" lecture, held by Professor Hubert Hoegl, at the University of Applied Sciences Augsburg, 2012
@@ -11,11 +11,11 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Ge
 for more details.
 
 
-README: Gnublin Debian scripts
+README: Gnublin Emdebian scripts
 ------------------------------
 
 
-This Readme should explain how to use the debian build-scripts. It also explains the settings and their meaning.
+This Readme should explain how to use the emdebian build-scripts. It also explains the settings and their meaning.
 
 
 
@@ -45,9 +45,9 @@ No internet connection equals no build process!
 2) Files
 --------
 
-- build_debian_system.sh : Main script file, running the functions defined in the "build_functions.sh". This is what you run in shell.
+- build_emdebian_system.sh : Main script file, running the functions defined in the "build_functions.sh". This is what you run in shell.
 
-- build_funtions.sh : As already mentioned, this includes the main build and some helper funtions that are used in the "build_debian_system.sh"
+- build_funtions.sh : As already mentioned, this includes the main build and some helper funtions that are used in the "build_emdebian_system.sh"
 
 - general_settings.sh: File for all settings and configurations. Here you define what the output of the scripts will look like.
 
@@ -70,7 +70,7 @@ Most of the settings are either self-explanatory, or already commented in the fi
 All other settings are optional and CAN, but don't necessarily need to be changed!
 
 Note:
-The variable "additional_packages" just is a list of packages that should be installed. So, just browse the debian package list ( http://packages.debian.org ) and add the ones you need/want, to the list. These will then be added to the resulting rootfs.
+The variable "additional_packages" just is a list of packages that should be installed. So, just browse the emdebian package list ( http://www.emdebian.org/grip/search.php ) and add the ones you need/want, to the list. These will then be added to the resulting rootfs.
 
 
 
@@ -81,8 +81,8 @@ The variable "additional_packages" just is a list of packages that should be ins
 Running the script is as easy as doing the following:
 
 - Make sure that you downloaded all 3 script files (or the complete package) and edited the "general_settings.sh".
-- Run "chmod +x build_debian_system.sh" if needed, to make the file executable.
-- Run the script itself by typing "sudo ./build_debian_system.sh" in a terminal window (NOT in a virtual console!).
+- Run "chmod +x build_emdebian_system.sh" if needed, to make the file executable.
+- Run the script itself by typing "sudo ./build_emdebian_system.sh" in a terminal window (NOT in a virtual console!).
 - Then follow the instructions on the screen! If nothing goes wrong, no user-input should be required until choosing the SD-Card device is necessary (if you did set that option!).
 - The output should be in form of a compressed archive file (.tar.gz or .tar.bz2) containing the rootfs and kernel.
 - If you set the option to build a SD-Card, you will be asked to specify the correct device, which then will be subsequently partitioned, formatted and filled with bootloader, rootfs and kernel.
@@ -124,4 +124,5 @@ Make sure that the system time is set to something else than 01/01/1970, if you 
 
 
 HAVE FUN! 
+
 

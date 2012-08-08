@@ -5,8 +5,7 @@
 
 
 # This program (including documentation) is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License version 3 (GPLv3; http://www.gnu.org/licenses/gpl-3.0.html )
-# for more details.
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License version 3 (GPLv3; http://www.gnu.org/licenses/gpl-3.0.html ) for more details.
 
 
 #############################
@@ -15,7 +14,7 @@
 
 host_os="Ubuntu" # Debian or Ubuntu (YOU NEED TO EDIT THIS!)
 
-debian_mirror_url="http://ftp.debian.org/debian" # mirror for debian
+debian_mirror_url="http://ftp.uk.debian.org/emdebian/grip" # mirror for debian
 
 debian_target_version="squeeze" # The version of debian that you want to build (ATM, 'squeeze', 'wheezy' and 'sid' are supported)
 
@@ -41,7 +40,7 @@ output_dir="${output_dir_base}/build_`date +%s`" # Subdirectory for each build-r
 
 work_image_size_MB=1024 # size of the temporary image file, in which the installation process is carried out
 
-output_filename="debian_rootfs_gnublin" # base name of the output file (compressed rootfs)
+output_filename="emdebian_rootfs_gnublin" # base name of the output file (compressed rootfs)
 
 apt_prerequisites_debian="debootstrap binfmt-support qemu-user-static qemu qemu-kvm qemu-system parted" # packages needed for the build process on debian
 
@@ -75,4 +74,4 @@ i2c_hwclock_addr="0x68" # hardware address of the RTC (if one is connected)
 
 rtc_kernel_module_name="rtc-ds1307" # kernel module name of the hardware RTC (if one is connected)
 
-additional_packages="makedev i2c-tools module-init-tools dhcp3-client netbase ifupdown iproute iputils-ping wget net-tools vim nano hdparm rsync bzip2 p7zip unrar unzip zip p7zip-full screen less usbutils psmisc strace info ethtool wireless-tools python rsyslog whois time ruby procps perl parted build-essential ccache bison flex autoconf automake gcc libc6 cpp curl fakeroot ftp gettext git subversion lm-sensors firmware-linux-free firmware-linux-nonfree firmware-realtek firmware-ralink firmware-linux firmware-brcm80211 firmware-atheros rcconf cgilib cgiemail cgi-mapserver lrzsz libnss-mdns libpam-modules nscd ssh" # IMPORTANT NOTE: All package names need to be seperated by a single space
+additional_packages="makedev module-init-tools vim nano hdparm lrzsz bzip2 unzip zip screen less usbutils psmisc strace info python whois time ruby procps perl parted build-essential bison flex autoconf automake gcc libc6 cpp curl fakeroot dhcp3-client netbase ifupdown iproute iputils-ping wget net-tools ftp ethtool wireless-tools gettext git subversion lm-sensors libnss-mdns libpam-modules nscd ssh rsync rsyslog"
