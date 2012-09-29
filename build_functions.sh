@@ -56,7 +56,6 @@ Please run 'build_debian_system.sh --help' for more information"
 fi
 
 fn_my_echo "Running 'apt-get update' to get the latest package dependencies."
-apt-get update
 if [ "$?" = "0" ]
 then
 	fn_my_echo "'apt-get update' ran successfully! Continuing..."
@@ -76,6 +75,11 @@ do
 	else
 		fn_my_echo "Package '${1}' is not installed yet.
 Trying to install it now!"
+		if [ ! "${apt-get-update_done}" = "true" ]
+		then
+			apt-get update
+			apt-get-update_done="true"
+		fi
 		apt-get install -y ${1}
 		if [ "$?" = "0" ]
 		then
@@ -132,7 +136,7 @@ fn_my_echo "Formatting the image file with the ext3 filesystem."
 mkfs.ext3 -F ${output_dir}/${output_filename}.img
 if [ "$?" = "0" ]
 then
-	fn_my_echo "Ext3 filesystem successfully created on '${output_dir}/${output_filename}.img'."
+	fn_my_echo "ext3 filesystem successfully created on '${output_dir}/${output_filename}.img'."
 else
 	fn_my_echo "ERROR while trying to create the ext3 filesystem on  '${output_dir}/${output_filename}.img'. Exiting now!"
 	exit 9
@@ -172,7 +176,7 @@ then
 	fn_my_echo "Debootstrap 1st stage finished successfully."
 else
 	fn_my_echo "ERROR while trying to run the first stage of debootstrap. Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 12
 fi
 
@@ -209,6 +213,7 @@ for l in {10..31}; do mknod /dev/bus/usb/001/0\${l} c 189 \${l}; done;
 mknod /dev/ttyS0 c 4 64	# for the serial console
 mknod /dev/rtc0 c 254 0
 mknod /dev/ramzswap0 b 254 0
+mknod /dev/zram0 b 254 0
 mknod -m 0666 /dev/mmcblk0p3 b 179 3	# SWAP
 mknod /dev/sda b 8 0	# SCSI storage device
 mknod /dev/sda1 b 8 1
@@ -246,6 +251,12 @@ if [ -e /ramzswap_setup.sh ]
 then
 	/ramzswap_setup.sh 2>/ramzswap_setup_log.txt && rm /ramzswap_setup.sh
 fi
+
+if [ -e /zram_setup.sh ]
+then
+	/zram_setup.sh 2>/zram_setup_log.txt && rm /zram_setup.sh
+fi
+
 /setup.sh 2>/setup_log.txt && rm /setup.sh
 
 exit 0
@@ -262,9 +273,22 @@ fi
 mount devpts ${output_dir}/mnt_debootstrap/dev/pts -t devpts
 mount -t proc proc ${output_dir}/mnt_debootstrap/proc
 
+if [ "${use_udev}" = "yes" ]
+then
+	base_packages=${base_packages_with_udev}
+elif [ "${use_udev}" = "no" ]
+then
+	base_packages=${base_packages_no_udev}
+else
+	fn_my_echo "Incorrect setting for option 'use_udev' in 'general_settings.sh!
+	Please check! Exiting now!"
+	regular_cleanup
+	exit 68
+fi
+
 /usr/sbin/chroot ${output_dir}/mnt_debootstrap /bin/sh -c "
 export LANG=C 2>>/deboostrap_stg2_errors.txt
-apt-get -y install apt-utils dialog locales manpages man-db 2>>/deboostrap_stg2_errors.txt
+apt-get -y install ${base_packages} 2>>/deboostrap_stg2_errors.txt
 
 cat <<END > /etc/apt/apt.conf 2>>/deboostrap_stg2_errors.txt
 APT::Install-Recommends \"0\";
@@ -272,6 +296,7 @@ APT::Install-Suggests \"0\";
 END
 
 apt-get -y -d install ${additional_packages} 2>>/deboostrap_stg2_errors.txt
+
 
 sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen 2>>/deboostrap_stg2_errors.txt	# enable locale
 locale-gen 2>>/deboostrap_stg2_errors.txt
@@ -354,6 +379,36 @@ exit 0" > ${output_dir}/mnt_debootstrap/ramzswap_setup.sh
 chmod +x ${output_dir}/mnt_debootstrap/ramzswap_setup.sh
 fi
 
+if [ "${use_zram}" = "yes" ]
+then
+	echo "#!/bin/sh
+cat <<END > /etc/rc.local 2>>/zram_setup_errors.txt
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will exit 0 on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+modprobe ${zram_kernel_module_name} zram_num_devices=1
+sleep 2
+echo ${zram_size_B} > /sys/block/zram0/disksize
+mkswap /dev/zram0
+swapon -p 100 /dev/zram0
+exit 0
+END
+
+exit 0" > ${output_dir}/mnt_debootstrap/zram_setup.sh
+chmod +x ${output_dir}/mnt_debootstrap/zram_setup.sh
+fi
+
+
 echo "
 ########################################################
 ########################################################
@@ -384,7 +439,11 @@ date_cur=`date` # needed further down as a very important part to circumvent the
 echo "#!/bin/sh
 
 date -s \"${date_cur}\" 2>>/post_deboostrap_errors.txt	# set the system date to prevent PAM from exhibiting its nasty DAY0 forced password change
-apt-get -y install ${additional_packages} 2>>/post_deboostrap_errors.txt && apt-get clean	# install the already downloaded packages
+
+apt-get install -y ${additional_packages} 2>>/post_debootstrap_apt_errors.txt
+apt-get clean
+dpkg -l > /installed_packages.txt
+
 
 if [ "${i2c_hwclock}" = "yes" ]
 then 
@@ -401,7 +460,7 @@ END
 
 chmod +x /sbin/hotplug
 
-if [ "${use_ramzswap}" = "yes" ]
+if [ "${use_ramzswap}" = "yes" ] || [ "${use_zram}" = "yes" ]
 then
 	echo vm.swappiness=${vm_swappiness} >> /etc/sysctl.conf
 fi
@@ -530,12 +589,12 @@ then
 		fn_my_echo "Temporary filesystem checked out, OK!"
 	else
 		fn_my_echo "ERROR: State of Temporary filesystem is NOT OK! Exiting now."
-		umount_img all
+		regular_cleanup
 		exit 60
 	fi
 else
 	fn_my_echo "ERROR: Image file still mounted. Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 61
 fi
 
@@ -559,7 +618,7 @@ Please check! Only valid entries are 'bz2' or 'gz'. Could not compress the Rootf
 	sleep 5
 else
 	fn_my_echo "ERROR: Image file could not be remounted correctly. Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 62
 fi
 
@@ -574,12 +633,12 @@ then
 elif [ "$?" = "0" ] && [ "${clean_tmp_files}" = "yes" ]
 then
 	fn_my_echo "Directory '${output_dir}/mnt_debootstrap' is still mounted, so it can't be removed. Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 15
 elif [ "$?" = "0" ] && [ "${clean_tmp_files}" = "no" ]
 then
 	fn_my_echo "Directory '${output_dir}/mnt_debootstrap' is still mounted, please check. Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 16
 fi
 
@@ -591,7 +650,7 @@ fn_my_echo "Rootfs successfully DONE!"
 partition_n_format_disk()
 {
 device=""
-fn_my_echo "Now listing all available devices:
+echo "Now listing all available devices:
 "
 
 while [ -z "${device}" ]
@@ -627,12 +686,12 @@ Type anything else and/or hit Enter to cancel!"
 			parted -s ${device} unit MB print
 		else
 			fn_my_echo "Action canceled by user. Exiting now!"
-			umount_img all
+			regular_cleanup
 			exit 17
 		fi
 	else
 		fn_my_echo "ERROR! Some partition on device '${device}' is still mounted. Exiting now!"
-		umount_img all
+		regular_cleanup
 		exit 18
 	fi
 else
@@ -663,7 +722,7 @@ END
 else
 	fn_my_echo "ERROR: There should be 3 partitions on '${device}', but one or more seem to be missing.
 Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 20
 fi
 
@@ -678,7 +737,7 @@ then
 	fn_my_echo "SD-card boot partition successfully set to type 'BootIt'."
 else
 	fn_my_echo "ERROR! SD-card boot partition doesn't seem to have type 'BootIt'. Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 21
 fi
 }
@@ -720,7 +779,7 @@ then
 else
 	fn_my_echo "ERROR! Device '${device}' doesn't seem to exist!
 	Exiting now"
-	umount_img all
+	regular_cleanup
 	exit 21
 fi
 
@@ -742,18 +801,18 @@ then
 			tar_all extract "${output_dir}/${output_filename}.tar.${tar_format}" "${output_dir}/sd-card"
 		else
 			fn_my_echo "ERROR: File '${output_dir}/${output_filename}.tar.${tar_format}' doesn't seem to exist. Exiting now!"
-			umount_img all
+			regular_cleanup
 			exit 22
 		fi
 		sleep 1
 	else
 		fn_my_echo "ERROR while trying to mount '${device}1' to '${output_dir}/sd-card'. Exiting now!"
-		umount_img all
+		regular_cleanup
 		exit 23
 	fi
 else
 	fn_my_echo "ERROR while trying to create the temporary directory '${output_dir}/sd-card'. Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 24
 fi
 
@@ -801,12 +860,12 @@ then
 			tar -cpzvf "${2}" "${3}"
 		else
 			fn_my_echo "ERROR! Created files can only be of type '.tar.gz', or '.tar.bz2'! Exiting now!"
-			umount_img all
+			regular_cleanup
 			exit 40
 		fi
 	else
 		fn_my_echo "ERROR! Illegal arguments '$2' and/or '$3'. Exiting now!"
-		umount_img all
+		regular_cleanup
 		exit 41
 	fi
 elif [ "$1" = "extract" ]
@@ -822,17 +881,17 @@ then
 		else
 			fn_my_echo "ERROR! Can only extract files of type '.tar.gz', or '.tar.bz2'!
 '${2}' doesn't seem to fit that requirement. Exiting now!"
-			umount_img all
+			regular_cleanup
 			exit 42
 		fi
 	else
 		fn_my_echo "ERROR! Illegal arguments '$2' and/or '$3'. Exiting now!"
-		umount_img all
+		regular_cleanup
 		exit 43
 	fi
 else
 	fn_my_echo "ERROR! The first parameter needs to be either 'compress' or 'extract', and not '$1'. Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 44
 fi
 }
@@ -958,6 +1017,26 @@ else
 	fn_my_echo "No entries found that match both the keywords 'domount' and 'tmpfs'."
 fi
 
+# Some special treatment for udev
+if [ -e ${output_dir}/mnt_debootstrap/etc/init.d/udev ] && [ -e ${output_dir}/mnt_debootstrap/etc/init.d/udev-mtab ]
+then
+	fn_my_echo "udev files do exist!"
+	for l in udev udev-mtab
+	do
+		grep 'tmpfs_size="10M"' "${output_dir}/mnt_debootstrap/etc/init.d/${l}"
+		if [ "$?" = "0" ]
+		then
+			fn_my_echo "Changing UDEV tmpfs_size from 10 to '${udev_tmpfs_size}' , in order to save RAM."
+			sed_search_n_replace "tmpfs_size=\"10M\"" "tmpfs_size=\"${udev_tmpfs_size}\"" "${output_dir}/mnt_debootstrap/etc/init.d/${l}" # Change tmpfs size to different value, other than the default 10M. Should be fine for this little system with not much hardware attached and saves RAM!
+		else
+			fn_my_echo "Not editing '${output_dir}/mnt_debootstrap/etc/init.d/${l}'.
+This Udev file does not contain a 'tmpfs_size' setting."
+		fi
+	done
+else
+	fn_my_echo "No udev files found."
+fi 
+
 }
 
 
@@ -974,7 +1053,7 @@ then
 Parameter 1 is file_path, parameter 2 is file_name and parameter 3 is short_description.
 Faulty parameters passed were '${1}', '${2}' and '${3}'.
 One or more of these appear to be empty. Exiting now!" 
-	umount_img all
+	regular_cleanup
 	exit 50
 fi
 
@@ -989,7 +1068,7 @@ then
 	else
 		fn_my_echo "ERROR: File '${file_path}/${file_name}' could not be downloaded.
 Exiting now!"
-	umount_img all
+	regular_cleanup
 	exit 51
 	fi
 else
@@ -999,23 +1078,23 @@ else
 		if [ -e ${file_path}/${file_name} ]
 		then
 			fn_my_echo "Now copying local file '${file_path}/${file_name}' to '${output_dir}/tmp'."
-			cp '${file_path}/${file_name}' '${output_dir}/tmp'
+			cp ${file_path}/${file_name} ${output_dir}/tmp
 			if [ "$?" = "0" ]
 			then
 				fn_my_echo "File successfully copied."
 			else
 				fn_my_echo "ERROR while trying to copy the file! Exiting now."
-				umount_img all
+				regular_cleanup
 				exit 52
 			fi
 		else
 			fn_my_echo "ERROR: File '${file_name}' does not seem to be a valid file in existing directory '${file_path}'.Exiting now!"
-			umount_img all
+			regular_cleanup
 			exit 53
 		fi
 	else
 		fn_my_echo "ERROR: Folder '${file_path}' does not seem to exist as a local directory. Exiting now!"
-		umount_img all
+		regular_cleanup
 		exit 54
 	fi
 fi
@@ -1023,7 +1102,7 @@ fi
 }
 
 
-cleanup()
+int_cleanup()
 {
 	fn_my_echo "Build process interrrupted. Now trying to clean up!"
 	umount_img all
@@ -1031,4 +1110,12 @@ cleanup()
 	rm -r ${output_dir}/tmp
 	rm -r ${output_dir}/sd-card
 	exit 99
+}
+
+regular_cleanup()
+{
+	umount_img all
+	rm -r ${output_dir}/mnt_debootstrap
+	rm -r ${output_dir}/tmp
+	rm -r ${output_dir}/sd-card
 }
