@@ -276,9 +276,11 @@ mount -t proc proc ${output_dir}/mnt_debootstrap/proc
 if [ "${use_udev}" = "yes" ]
 then
 	base_packages=${base_packages_with_udev}
+	fn_my_echo "Choosing packages, including udev."
 elif [ "${use_udev}" = "no" ]
 then
 	base_packages=${base_packages_no_udev}
+	fn_my_echo "Choosing packages, NOT including udev."
 else
 	fn_my_echo "Incorrect setting for option 'use_udev' in 'general_settings.sh!
 	Please check! Exiting now!"
