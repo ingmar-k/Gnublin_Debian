@@ -9,9 +9,65 @@
 # warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License version 3 (GPLv3; http://www.gnu.org/licenses/gpl-3.0.html ) for more details.
 
 
-###########################
-##### MAIN Functions: #####
-###########################
+#####################################
+##### MAIN Highlevel Functions: #####
+#####################################
+
+
+### Preparation ###
+
+prep_output()
+{
+mkdir -p ${output_dir} # main directory for the build process
+if [ "$?" = "0" ]
+then
+	echo "Output directory '${output_dir}' successfully created."
+else
+	echo "ERROR while trying to create the output directory '${output_dir}'. Exiting now!"
+	exit 4
+fi
+
+
+mkdir ${output_dir}/tmp # subdirectory for all downloaded or local temporary files
+if [ "$?" = "0" ]
+then
+	echo "Subfolder 'tmp' of output directory '${output_dir}' successfully created."
+else
+	echo "ERROR while trying to create the 'tmp' subfolder '${output_dir}/tmp'. Exiting now!"
+	exit 5
+fi
+}
+
+### Rootfs Creation ###
+build_rootfs()
+{
+	check_n_install_prerequisites # see if all needed packages are installed and if the versions are sufficient
+
+	create_n_mount_temp_image_file # create the image file that is then used for the rootfs
+
+	do_debootstrap # run debootstrap (first and second stage)
+
+	disable_mnt_tmpfs # disable all entries in /etc/init.d trying to mount temporary filesystems (tmpfs), in order to save precious RAM
+
+	do_post_debootstrap_config # do some further system configuration
+
+	compress_debian_rootfs # compress the resulting rootfs
+}
+
+
+### SD-Card Creation ###
+create_sd_card()
+{
+	partition_n_format_disk # SD-card: make partitions and format
+	finalize_disk # copy the bootloader, rootfs and kernel to the SD-card
+}
+
+
+
+
+#######################################
+##### MAIN lower level functions: #####
+#######################################
 
 # Description: Check if the user calling the script has the necessary priviliges
 check_priviliges()
@@ -20,7 +76,7 @@ if [[ $UID -ne 0 ]]
 then
 	echo "$0 must be run as root/superuser (sudo etc.)!
 Please try again with the necessary priviliges."
-	exit 2
+	exit 10
 fi
 }
 
@@ -34,7 +90,7 @@ fn_my_echo()
 		echo "${1}"
 	else
 		echo "Output directory '${output_dir}' doesn't exist. Exiting now!"
-		exit 3
+		exit 11
 	fi
 }
 
@@ -52,7 +108,7 @@ then
 else
 	fn_my_echo "OS-Type '${host_os}' not correct.
 Please run 'build_debian_system.sh --help' for more information"
-	exit 4
+	exit 12
 fi
 
 fn_my_echo "Running 'apt-get update' to get the latest package dependencies."
@@ -61,7 +117,7 @@ then
 	fn_my_echo "'apt-get update' ran successfully! Continuing..."
 else
 	fn_my_echo "ERROR while trying to run 'apt-get update'. Exiting now."
-	exit 5
+	exit 13
 fi
 
 set -- ${apt_prerequisites}
@@ -92,7 +148,7 @@ Trying to install it now!"
 If your host system is not Ubuntu 10.XX based, this could lead to errors. Please check!"
 			else
 				fn_my_echo "Exiting now!"
-				exit 7
+				exit 14
 			fi
 		fi
 	fi
@@ -109,7 +165,7 @@ You need to install a package with a version of at least 1.0.
 For example from the debian-testing repositiories.
 Link: 'http://packages.debian.org/search?keywords=qemu&searchon=names&suite=testing&section=all'
 Exiting now!"
-			exit 6
+			exit 15
 		fi
 	fi
 	shift
@@ -129,7 +185,7 @@ then
 	fn_my_echo "File '${output_dir}/${output_filename}.img' successfully created with a size of ${work_image_size_MB}MB."
 else
 	fn_my_echo "ERROR while trying to create the file '${output_dir}/${output_filename}.img'. Exiting now!"
-	exit 8
+	exit 16
 fi
 
 fn_my_echo "Formatting the image file with the ext3 filesystem."
@@ -139,7 +195,7 @@ then
 	fn_my_echo "ext3 filesystem successfully created on '${output_dir}/${output_filename}.img'."
 else
 	fn_my_echo "ERROR while trying to create the ext3 filesystem on  '${output_dir}/${output_filename}.img'. Exiting now!"
-	exit 9
+	exit 17
 fi
 
 fn_my_echo "Creating the directory to mount the temporary filesystem."
@@ -149,7 +205,7 @@ then
 	fn_my_echo "Directory '${output_dir}/mnt_debootstrap' successfully created."
 else
 	fn_my_echo "ERROR while trying to create the directory '${output_dir}/mnt_debootstrap'. Exiting now!"
-	exit 10
+	exit 18
 fi
 
 fn_my_echo "Now mounting the temporary filesystem."
@@ -159,7 +215,7 @@ then
 	fn_my_echo "Filesystem correctly mounted on '${output_dir}/mnt_debootstrap'."
 else
 	fn_my_echo "ERROR while trying to mount the filesystem on '${output_dir}/mnt_debootstrap'. Exiting now!"
-	exit 11
+	exit 19
 fi
 
 fn_my_echo "Function 'create_n_mount_temp_image_file' DONE."
@@ -177,7 +233,7 @@ then
 else
 	fn_my_echo "ERROR while trying to run the first stage of debootstrap. Exiting now!"
 	regular_cleanup
-	exit 12
+	exit 20
 fi
 
 modprobe binfmt_misc
@@ -285,7 +341,7 @@ else
 	fn_my_echo "Incorrect setting for option 'use_udev' in 'general_settings.sh!
 	Please check! Exiting now!"
 	regular_cleanup
-	exit 68
+	exit 21
 fi
 
 /usr/sbin/chroot ${output_dir}/mnt_debootstrap /bin/sh -c "
@@ -316,8 +372,8 @@ cat <<END > /etc/fstab 2>>/deboostrap_stg2_errors.txt
 END
 
 update-rc.d -f mountoverflowtmp remove 2>>/deboostrap_stg2_errors.txt
-echo 'T0:2345:respawn:/sbin/getty -L ttyS0 115200 vt102' >> /etc/inittab 2>>/deboostrap_stg2_errors.txt	# disable virtual consoles
-sed -i 's/^\([1-6]:.* tty[1-6]\)/#\1/' /etc/inittab 2>>/deboostrap_stg2_errors.txt
+echo 'T0:2345:respawn:/sbin/mingetty ttyS0 115200 vt102' >> /etc/inittab 2>>/deboostrap_stg2_errors.txt	# enable serial consoles
+sed -i 's/^\([1-6]:.* tty[1-6]\)/#\1/' /etc/inittab 2>>/deboostrap_stg2_errors.txt # disable virtual consoles
 
 exit
 " 2>${output_dir}/chroot_2_log.txt
@@ -345,15 +401,15 @@ fn_my_echo "Now starting the post-debootstrap configuration steps."
 
 mkdir -p ${output_dir}/qemu-kernel
 
-get_n_check_file "${std_kernel_pkg_path}" "${std_kernel_pkg_name}" "standard_kernel"
+get_n_check_file "${std_kernel_pkg_path}" "${std_kernel_pkg_name}" "standard_kernel" "${output_dir}/tmp"
 
-get_n_check_file "${qemu_kernel_pkg_path}" "${qemu_kernel_pkg_name}" "qemu_kernel"
+get_n_check_file "${qemu_kernel_pkg_path}" "${qemu_kernel_pkg_name}" "qemu_kernel" "${output_dir}/tmp"
 
 tar_all extract "${output_dir}/tmp/${qemu_kernel_pkg_name}" "${output_dir}/qemu-kernel"
 sleep 3
 tar_all extract "${output_dir}/tmp/${std_kernel_pkg_name}" "${output_dir}/mnt_debootstrap"
 
-cp -ar ${output_dir}/qemu-kernel/lib/ ${output_dir}/mnt_debootstrap
+cp -ar ${output_dir}/qemu-kernel/lib/ ${output_dir}/mnt_debootstrap  # copy the qemu kernel modules intot the rootfs
 
 if [ "${use_ramzswap}" = "yes" ]
 then
@@ -413,8 +469,7 @@ fi
 
 echo "
 ########################################################
-########################################################
-## __      __     _                        _          ##
+#//__      __     _                        _         \\#
 ## \ \    / /___ | | __  ___  _ __   ___  | |_  ___   ##
 ##  \ \/\/ // -_)| |/ _|/ _ \| '  \ / -_) |  _|/ _ \  ##
 ##   \_/\_/ \___||_|\__|\___/|_|_|_|\___|  \__|\___/  ##
@@ -430,8 +485,7 @@ echo "
 ##       | |  | | / _ \| '_ \ | | / _\` || '_ \        ##
 ##       | |__| ||  __/| |_) || || (_| || | | |       ##
 ##       |_____/  \___||_.__/ |_| \__,_||_| |_|       ##
-##                                                    ##
-########################################################
+#\\                                                  //#
 ########################################################
 " >> ${output_dir}/mnt_debootstrap/etc/motd.tail
 
@@ -557,7 +611,7 @@ then
 	fn_my_echo "Filesystem image file successfully unmounted. Ready to continue."
 else
 	fn_my_echo "Error while trying to unmount the filesystem image. Exiting now!"
-	exit 13
+	exit 22
 fi
 
 sleep 5
@@ -569,7 +623,7 @@ then
 	qemu-system-arm -M versatilepb -cpu arm926 -no-reboot -kernel ${output_dir}/qemu-kernel/zImage -hda ${output_dir}/${output_filename}.img -m 256 -append "root=/dev/sda rootfstype=ext3 mem=256M devtmpfs.mount=0 rw ip=dhcp" 2>qemu_error_log.txt
 else
 	fn_my_echo "ERROR! Filesystem is still mounted. Can't run qemu!"
-	exit 14
+	exit 23
 fi
 
 fn_my_echo "Additional chroot system configuration successfully finished!"
@@ -592,12 +646,12 @@ then
 	else
 		fn_my_echo "ERROR: State of Temporary filesystem is NOT OK! Exiting now."
 		regular_cleanup
-		exit 60
+		exit 24
 	fi
 else
 	fn_my_echo "ERROR: Image file still mounted. Exiting now!"
 	regular_cleanup
-	exit 61
+	exit 25
 fi
 
 mount ${output_dir}/${output_filename}.img ${output_dir}/mnt_debootstrap -o loop
@@ -621,7 +675,7 @@ Please check! Only valid entries are 'bz2' or 'gz'. Could not compress the Rootf
 else
 	fn_my_echo "ERROR: Image file could not be remounted correctly. Exiting now!"
 	regular_cleanup
-	exit 62
+	exit 26
 fi
 
 umount ${output_dir}/mnt_debootstrap
@@ -636,12 +690,12 @@ elif [ "$?" = "0" ] && [ "${clean_tmp_files}" = "yes" ]
 then
 	fn_my_echo "Directory '${output_dir}/mnt_debootstrap' is still mounted, so it can't be removed. Exiting now!"
 	regular_cleanup
-	exit 15
+	exit 27
 elif [ "$?" = "0" ] && [ "${clean_tmp_files}" = "no" ]
 then
 	fn_my_echo "Directory '${output_dir}/mnt_debootstrap' is still mounted, please check. Exiting now!"
 	regular_cleanup
-	exit 16
+	exit 28
 fi
 
 fn_my_echo "Rootfs successfully DONE!"
@@ -676,6 +730,7 @@ Type anything else and/or hit Enter to cancel!"
 		read affirmation
 		if [ "${affirmation}" = "yes" ]
 		then
+			fn_my_echo "SD-card device set to '${device}', according to user input."
 			parted -s ${device} mklabel msdos
 			# first partition = root (rest of the drive size)
 			parted --align=opt -- ${device} unit MB mkpart primary ext3 1 -132
@@ -689,12 +744,12 @@ Type anything else and/or hit Enter to cancel!"
 		else
 			fn_my_echo "Action canceled by user. Exiting now!"
 			regular_cleanup
-			exit 17
+			exit 29
 		fi
 	else
 		fn_my_echo "ERROR! Some partition on device '${device}' is still mounted. Exiting now!"
 		regular_cleanup
-		exit 18
+		exit 30
 	fi
 else
 	if [ ! -z "${device}" ] # in case of a refresh we don't want to see the error message ;-)
@@ -725,7 +780,7 @@ else
 	fn_my_echo "ERROR: There should be 3 partitions on '${device}', but one or more seem to be missing.
 Exiting now!"
 	regular_cleanup
-	exit 20
+	exit 31
 fi
 
 sleep 1
@@ -740,7 +795,7 @@ then
 else
 	fn_my_echo "ERROR! SD-card boot partition doesn't seem to have type 'BootIt'. Exiting now!"
 	regular_cleanup
-	exit 21
+	exit 32
 fi
 }
 
@@ -752,7 +807,7 @@ finalize_disk()
 # Copy bootloader to the boot partition
 fn_my_echo "Getting the bootloader and trying to copy it to the boot partition, now!"
 
-get_n_check_file "${bootloader_bin_path}" "${bootloader_bin_name}" "bootloader_binary"
+get_n_check_file "${bootloader_bin_path}" "${bootloader_bin_name}" "bootloader_binary" "${output_dir}/tmp"
 
 if [ -e ${device} ] &&  [ "${device:0:5}" = "/dev/" ]
 then
@@ -765,7 +820,7 @@ then
 			dd if=${output_dir}/tmp/${bootloader_bin_name} of=${device}2
 			if [ "$?" = "0" ]
 			then
-				fn_my_echo "Bootloader successfully copied!"
+				fn_my_echo "Bootloader successfully copied to SD-card ('${device}')!"
 			else
 				fn_my_echo "ERROR while trying to copy the bootloader '${bootloader_bin_path}/${bootloader_bin_name}' to the device '${device}2'."
 			fi
@@ -773,8 +828,6 @@ then
 			fn_my_echo "ERROR! Bootloader binary '${bootloader_bin_name}' doesn't seem to exist in directory '${output_dir}/tmp/'.
 			You won't be able to boot the card, without copying the file to the second partition."
 		fi
-
-		
 	else
 		fn_my_echo "ERROR! Some partition on device '${device}' is still mounted. Exiting now!"
 	fi
@@ -782,7 +835,7 @@ else
 	fn_my_echo "ERROR! Device '${device}' doesn't seem to exist!
 	Exiting now"
 	regular_cleanup
-	exit 21
+	exit 33
 fi
 
 # unpack the filesystem and kernel to the root partition
@@ -790,11 +843,9 @@ fi
 fn_my_echo "Now unpacking the rootfs to the SD-card's root partition!"
 
 mkdir ${output_dir}/sd-card
-
 if [ "$?" = "0" ]
 then
 	fsck -fy ${device}1 # just to be sure
-	
 	mount ${device}1 ${output_dir}/sd-card
 	if [ "$?" = "0" ]
 	then
@@ -804,28 +855,27 @@ then
 		else
 			fn_my_echo "ERROR: File '${output_dir}/${output_filename}.tar.${tar_format}' doesn't seem to exist. Exiting now!"
 			regular_cleanup
-			exit 22
+			exit 34
 		fi
 		sleep 1
 	else
 		fn_my_echo "ERROR while trying to mount '${device}1' to '${output_dir}/sd-card'. Exiting now!"
 		regular_cleanup
-		exit 23
+		exit 35
 	fi
 else
 	fn_my_echo "ERROR while trying to create the temporary directory '${output_dir}/sd-card'. Exiting now!"
 	regular_cleanup
-	exit 24
+	exit 36
 fi
 
 sleep 3
-
+fn_my_echo "Unmounting the SD-card now."
 umount ${output_dir}/sd-card
 
 sleep 3
-
+fn_my_echo "Running fsck to make sure the filesystem on the card is fine."
 fsck -fy ${device}1 # final check
-
 if [ "$?" = "0" ]
 then
 	fn_my_echo "SD-card successfully created!
@@ -863,12 +913,12 @@ then
 		else
 			fn_my_echo "ERROR! Created files can only be of type '.tar.gz', or '.tar.bz2'! Exiting now!"
 			regular_cleanup
-			exit 40
+			exit 37
 		fi
 	else
 		fn_my_echo "ERROR! Illegal arguments '$2' and/or '$3'. Exiting now!"
 		regular_cleanup
-		exit 41
+		exit 38
 	fi
 elif [ "$1" = "extract" ]
 then
@@ -884,17 +934,17 @@ then
 			fn_my_echo "ERROR! Can only extract files of type '.tar.gz', or '.tar.bz2'!
 '${2}' doesn't seem to fit that requirement. Exiting now!"
 			regular_cleanup
-			exit 42
+			exit 39
 		fi
 	else
 		fn_my_echo "ERROR! Illegal arguments '$2' and/or '$3'. Exiting now!"
 		regular_cleanup
-		exit 43
+		exit 40
 	fi
 else
 	fn_my_echo "ERROR! The first parameter needs to be either 'compress' or 'extract', and not '$1'. Exiting now!"
 	regular_cleanup
-	exit 44
+	exit 41
 fi
 }
 
@@ -945,7 +995,7 @@ fi
 }
 
 
-# Description: Helper function to search and replace strings (also those containing special characters!) in files
+# Description: Helper function to search and replace strings (also works on strings containing special characters!) in files
 sed_search_n_replace()
 {
 if [ ! -z "${1}" ] && [ ! -z "${3}" ] && [ -e "${3}" ]
@@ -978,7 +1028,7 @@ fi
 }
 
 
-# Description: Function to disable all /etc/init.d startup entries that try to mount something as tmpfs
+# Description: Function to disable all /etc/init.d startup entries that try to mount tmpfs-filesystems in RAM (especially necessary on the 8MB gnublin)
 disable_mnt_tmpfs()
 {
 
@@ -1048,30 +1098,48 @@ get_n_check_file()
 file_path=${1}
 file_name=${2}
 short_description=${3}
+output_path=${4}
 
-if [ -z "${1}" ] || [ -z "${2}" ] || [ -z "${3}" ]
+if [ -z "${1}" ] || [ -z "${2}" ] || [ -z "${3}" ] || [ -z "${4}" ]
 then
-	fn_my_echo "ERROR: Function get_n_check_file needs 3 parameters.
-Parameter 1 is file_path, parameter 2 is file_name and parameter 3 is short_description.
-Faulty parameters passed were '${1}', '${2}' and '${3}'.
+	fn_my_echo "ERROR: Function get_n_check_file needs 4 parameters.
+Parameter 1 is file_path, parameter 2 is file_name, parameter 3 is short_description and parameter 4 is the file output-path.
+Faulty parameters passed were '${1}', '${2}', '${3}' and '${4}'.
 One or more of these appear to be empty. Exiting now!" 
 	regular_cleanup
-	exit 50
+	exit 42
 fi
 
 if [ "${file_path:0:4}" = "http" ] || [ "${file_path:0:3}" = "ftp" ]
 then
-	fn_my_echo "Downloading ${short_description} from address '${file_path}/${file_name}', now."
-	cd ${output_dir}/tmp
-	wget ${file_path}/${file_name}
-	if [ "$?" = "0" ]
+	fn_my_echo "Trying to download ${short_description} from address '${file_path}/${file_name}', now."
+	if [ -d ${output_path} ]
 	then
-		fn_my_echo "'${short_description}' successfully downloaded from address '${file_path}/${file_name}'."
+		cd ${output_path}
+		wget -q --spider ${file_path}/${file_name}
+		if [ "$?" = "0" ]
+		then
+			wget -t 3 ${file_path}/${file_name}
+			if [ "$?" = "0" ]
+			then
+				fn_my_echo "'${short_description}' successfully downloaded from address '${file_path}/${file_name}'."
+			else
+				fn_my_echo "ERROR: File '${file_path}/${file_name}' could not be downloaded.
+	Exiting now!"
+			regular_cleanup
+			exit 43
+			fi
+		else
+			fn_my_echo "ERROR: '${file_path}/${file_name}' does not seem to be a valid internet address. Please check!
+	Exiting now!"
+			regular_cleanup
+			exit 44
+		fi
 	else
-		fn_my_echo "ERROR: File '${file_path}/${file_name}' could not be downloaded.
-Exiting now!"
-	regular_cleanup
-	exit 51
+		fn_my_echo "ERROR: Output directory '${output_path}' does not seem to exist. Please check!
+	Exiting now!"
+			regular_cleanup
+			exit 45
 	fi
 else
 	fn_my_echo "Looking for the ${short_description} locally (offline)."	
@@ -1079,45 +1147,45 @@ else
 	then
 		if [ -e ${file_path}/${file_name} ]
 		then
-			fn_my_echo "Now copying local file '${file_path}/${file_name}' to '${output_dir}/tmp'."
-			cp ${file_path}/${file_name} ${output_dir}/tmp
+			fn_my_echo "Now copying local file '${file_path}/${file_name}' to '${output_path}'."
+			cp ${file_path}/${file_name} ${output_path}
 			if [ "$?" = "0" ]
 			then
 				fn_my_echo "File successfully copied."
 			else
 				fn_my_echo "ERROR while trying to copy the file! Exiting now."
 				regular_cleanup
-				exit 52
+				exit 46
 			fi
 		else
 			fn_my_echo "ERROR: File '${file_name}' does not seem to be a valid file in existing directory '${file_path}'.Exiting now!"
 			regular_cleanup
-			exit 53
+			exit 47
 		fi
 	else
 		fn_my_echo "ERROR: Folder '${file_path}' does not seem to exist as a local directory. Exiting now!"
 		regular_cleanup
-		exit 54
+		exit 48
 	fi
 fi
 
 }
 
 
-int_cleanup()
+int_cleanup() # special treatment for script abort through interrupt ('ctrl-c'  keypress, etc.)
 {
 	fn_my_echo "Build process interrrupted. Now trying to clean up!"
-	umount_img all
-	rm -r ${output_dir}/mnt_debootstrap
-	rm -r ${output_dir}/tmp
-	rm -r ${output_dir}/sd-card
+	umount_img all 2>/dev/null
+	rm -r ${output_dir}/mnt_debootstrap 2>/dev/null
+	rm -r ${output_dir}/tmp 2>/dev/null
+	rm -r ${output_dir}/sd-card 2>/dev/null
 	exit 99
 }
 
-regular_cleanup()
+regular_cleanup() # cleanup for all other error situations
 {
-	umount_img all
-	rm -r ${output_dir}/mnt_debootstrap
-	rm -r ${output_dir}/tmp
-	rm -r ${output_dir}/sd-card
+	umount_img all 2>/dev/null
+	rm -r ${output_dir}/mnt_debootstrap 2>/dev/null
+	rm -r ${output_dir}/tmp 2>/dev/null
+	rm -r ${output_dir}/sd-card 2>/dev/null
 }

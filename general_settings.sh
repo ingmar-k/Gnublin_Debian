@@ -23,7 +23,7 @@ use_udev="no" # for the 8MB Gnublin, say "no" here, whereas the 32MB version of 
 
 ### These settings are for experienced users ###
 
-debian_mirror_url="http://ftp.debian.org/debian" # mirror for debian
+debian_mirror_url="http://ftp.de.debian.org/debian/" # mirror for debian
 
 debian_target_version="squeeze" # The version of debian that you want to build (ATM, 'squeeze', 'wheezy' and 'sid' are supported)
 
@@ -34,7 +34,7 @@ qemu_kernel_pkg_name="kernel_3.3.0-gnublin-qemu-1.0_1348953287.tar.bz2" # qemu k
 
 std_kernel_pkg_path="http://www.hs-augsburg.de/~ingmar_k/gnublin/kernels/3.3.0" # where to get the standard kernel
 
-std_kernel_pkg_name="kernel_3.3.0-gnublin-debian-small-1.0_1349040189.tar.bz2" # standard kernel file name
+std_kernel_pkg_name="kernel_3.3.0-gnublin-debian-tiny-1.0_1349121494.tar.bz2" # standard kernel file name
 
 
 bootloader_bin_path="http://www.hs-augsburg.de/~ingmar_k/gnublin/bootloader" # where to get the bootloader
@@ -56,9 +56,9 @@ apt_prerequisites_debian="debootstrap binfmt-support qemu-user-static qemu qemu-
 apt_prerequisites_ubuntu="debootstrap binfmt-support qemu qemu-system qemu-kvm qemu-kvm-extras-static parted" # packages needed for the build process on ubuntu
 
 
-base_packages_no_udev="apt-utils dialog locales makedev"
+base_packages_no_udev="apt-utils dialog locales makedev mingetty"
 
-base_packages_with_udev="apt-utils dialog locales udev"
+base_packages_with_udev="apt-utils dialog locales udev mingetty"
 
 
 clean_tmp_files="yes" # delete the temporary files, when the build process is done?
@@ -74,7 +74,7 @@ create_disk="yes" # create a bootable SD-card after building the rootfs?
 
 ### Additional Software ###
 
-additional_packages="manpages man-db i2c-tools module-init-tools dhcp3-client netbase ifupdown iproute iputils-ping net-tools wget vim nano hdparm rsync bzip2 p7zip unrar unzip zip p7zip-full screen less usbutils psmisc strace info ethtool wireless-tools iw wpasupplicant python rsyslog whois time ruby procps perl parted ftp gettext firmware-linux-free firmware-linux-nonfree firmware-realtek firmware-ralink firmware-linux firmware-brcm80211 firmware-atheros rcconf lrzsz libpam-modules" # IMPORTANT NOTE: All package names need to be seperated by a single space
+additional_packages="file manpages man-db i2c-tools module-init-tools dhcp3-client netbase ifupdown iproute iputils-ping net-tools wget vim nano hdparm rsync bzip2 p7zip unrar unzip zip p7zip-full screen less usbutils psmisc strace info ethtool wireless-tools iw wpasupplicant python whois time ruby procps perl parted ftp gettext firmware-linux-free firmware-linux-nonfree firmware-realtek firmware-ralink firmware-linux firmware-brcm80211 firmware-atheros rcconf lrzsz libpam-modules" # IMPORTANT NOTE: All package names need to be seperated by a single space
 
 
 ### Settings for compressed SWAP space in RAM ### 
@@ -90,7 +90,7 @@ use_zram="yes" # Kernel 3.x.x only!!! set if you want to use a compressed SWAP s
 
 zram_kernel_module_name="zram" # name of the ramzswap kernel module (could have a different name on newer kernel versions)
 
-zram_size_B="3145728" # size of the ramzswap device in Byte (!!!)
+zram_size_B="2097152" # size of the ramzswap device in Byte (!!!)
 
 
 vm_swappiness="100" # Setting for general kernel RAM swappiness: With RAMzswap and low RAM, a high number (like 100) could be good. Default in Linux mostly is 60.
@@ -98,7 +98,7 @@ vm_swappiness="100" # Setting for general kernel RAM swappiness: With RAMzswap a
 
 ### Settings for a RTC ###
 
-i2c_hwclock="yes" # say "yes" here, if you connected a RTC to your gnublin board, otherwise say "no"
+i2c_hwclock="no" # say "yes" here, if you connected a RTC to your gnublin board, otherwise say "no"
 
 i2c_hwclock_name="ds1307" # name of the hardware RTC (if one is connected)
 
@@ -112,13 +112,14 @@ rtc_kernel_module_name="rtc-ds1307" # kernel module name of the hardware RTC (if
 udev_tmpfs_size="3M" # default setting in udev is "10M", which is wasting RAM on the Gnublin
 
 
+
 ####################################
 ##### "INSTALL ONLY" SETTINGS: #####
 ####################################
 
-rootfs_package_path="http://www.hs-augsburg.de/~ingmar_k/gnublin/rootfs_packages/32MB" # where to get the compressed rootfs archive
+default_rootfs_package_path="http://www.hs-augsburg.de/~ingmar_k/gnublin/rootfs_packages/8MB" # where to get the compressed rootfs archive
 
-rootfs_package_name="debian_rootfs_gnublin.tar.bz2" # filename of the rootfs-archive
+default_rootfs_package_name="debian_rootfs_gnublin_1349121567.tar.bz2" # filename of the rootfs-archive
 
 
 

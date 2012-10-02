@@ -16,98 +16,78 @@ source build_functions.sh # functions called by this main build script
 ###### Main script ######
 #########################
 
+check_priviliges # check if the script was run with root priviliges
 
-case "$1" in
-
-"build")  echo "Building a rootfs image and saving it into a single compressed archive."
-    parameter_1="$1"
-    ;;
-"install")  echo  "Installing the contents of a given rootfs-archive onto a bootable SD-card."
-    parameter_1="$1"
-    ;;
-*)if [ -z "$1" ]
-  then
-	echo "No option passed to '$0'. Standard mode, according to 'general_settings' file."
-  else
+if [ -z "$1" ] # if started without parameters, just run the full program, as specified in 'general_settings.sh'
+then
+	prep_output
+	build_rootfs
+	if [ "${create_disk}" = "yes" ]
+	then
+		create_sd_card
+	fi
+	regular_cleanup
+	
+elif [ "$1" = "build" ] && [ -z "$2" ]  # case of just wanting to build a compressed rootfs archive
+then
+	param_1="build"
+	prep_output
+	build_rootfs
+	regular_cleanup
+	
+elif [ "$1" = "install" ] && [ ! -z "$2" ]
+then
+	prep_output
+	fn_my_echo "Running the script in install-only mode!
+Just creating a complete, fully bootable sd-card."
+	param_1="install"
+	if [ "$2" = "default" ]
+	then
+		fn_my_echo "Using the default rootfs-package settings defined in 'general_settings.sh'."
+		rootfs_package_path=${default_rootfs_package_path}
+		rootfs_package_name=${default_rootfs_package_name}
+	else 
+		rootfs_package_path=${2%/*}
+		rootfs_package_name=${2##*/}
+	fi
+	get_n_check_file "${rootfs_package_path}" "${rootfs_package_name}" "rootfs_package" "${output_dir}"
+	if [ "${rootfs_package_name:(-8)}" = ".tar.bz2" ]
+	then
+		tar_format="bz2"
+		output_filename="${rootfs_package_name%.tar.bz2}"
+	elif [ "${rootfs_package_name:(-7)}" = ".tar.gz" ]
+	then
+		tar_format="gz"
+		output_filename="${rootfs_package_name%.tar.gz}"
+	else
+		fn_my_echo "The variable rootfs_package_name seems to point to a file that is neither a '.tar.bz2' nor a '.tar.gz' package.
+Please check! Exiting now."
+		exit 1
+	fi
+	create_sd_card
+	regular_cleanup
+	
+elif [ "$1" = "install" ] && [ -z "$2" ]
+then
+	echo "You seem to have called the script with the 'install' parameter.
+This requires the location of the compressed rootfs archive as second parameter.
+Please rerun the script accordingly.
+For example:
+sudo ./build_debian_system.sh install 'http://www.hs-augsburg.de/~ingmar_k/gnublin/rootfs_packages/8MB/debian_rootfs_gnublin_1349121567.tar.bz2'
+"
+	exit 2
+else
 	echo "'$0' was called with parameter '$1', which does not seem to be a correct parameter.
 	
 Correct parameters are:
 -----------------------
-build : If you only want to build a compressed rootfs archive (for example for later use).
-install : if you only want to create a bootable SD-card with an already existing rootfs-package.
+build : If you only want to build a compressed rootfs archive (for example for later use), according to the setting in 'general_settings.sh'.
+install 'archivename': if you only want to create a bootable SD-card with an already existing rootfs-package (tar.bz2 or tar.gz compressed archive).
 -----------------------
 Besides that you can also run '$0' without any parameters, for the full functionality, according to the settings in 'general_settings'.
 Exiting now!"
-	exit 64
-  fi
-   ;;
-esac
-
-
-
-### Preparation ###
-
-check_priviliges # check if the script was run with root priviliges
-
-mkdir -p ${output_dir} # main directory for the build process
-if [ "$?" = "0" ]
-then
-	echo "Output directory '${output_dir}' successfully created."
-else
-	echo "ERROR while trying to create the output directory '${output_dir}'. Exiting now!"
-	exit 1
+	exit 3
 fi
 
-
-mkdir ${output_dir}/tmp # subdirectory for all downloaded or local temporary files
-if [ "$?" = "0" ]
-then
-	echo "Subfolder 'tmp' of output directory '${output_dir}' successfully created."
-else
-	echo "ERROR while trying to create the 'tmp' subfolder '${output_dir}/tmp'. Exiting now!"
-	exit 2
-fi
-
-
-### Rootfs Creation ###
-
-if [ "$parameter_1" = "build" -o -z "$parameter_1" ]  && [ ! "$paramter_1" = "install" ]
-then
-	check_n_install_prerequisites # see if all needed packages are installed and if the versions are sufficient
-
-	create_n_mount_temp_image_file # create the image file that is then used for the rootfs
-
-	do_debootstrap # run debootstrap (first and second stage)
-
-	disable_mnt_tmpfs # disable all entries in /etc/init.d trying to mount temporary filesystems (tmpfs), in order to save precious RAM
-
-	do_post_debootstrap_config # do some further system configuration
-
-	compress_debian_rootfs # compress the resulting rootfs
-fi
-
-
-### SD-Card Creation ###
-if [ "$parameter_1" = "install" ] || [ -z "$paramter_1" -a "${create_disk}" = "yes" ]
-then
-	if [ "$parameter_1" = "install" ]
-	then
-		get_n_check_file "${rootfs_package_path}" "${rootfs_package_name}" "rootfs_package"
-		${output_dir}="${output_dir}/tmp"
-		if [ "${rootfs_package_name:(-8)}" = ".tar.bz2" ]
-		then
-			${output_filename}="${rootfs_package_name%.tar.bz2}"
-		elif [ "${rootfs_package_name:(-7)}" = ".tar.gz" ]
-		then
-			${output_filename}="${rootfs_package_name%.tar.gz}"
-		else
-			fn_my_echo "The variable rootfs_package_name seems to point to a file that is neither a '.tar.bz2' nor a '.tar.gz' package.
-Please check! Exiting now."
-			exit 66
-		fi
-	fi
-	partition_n_format_disk # SD-card: make partitions and format
-	finalize_disk # copy the bootloader, rootfs and kernel to the SD-card
-fi
 
 exit 0
