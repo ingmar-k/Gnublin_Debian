@@ -19,6 +19,8 @@ host_os="Debian" # Debian or Ubuntu (YOU NEED TO EDIT THIS!)
 nameserver_addr="192.168.2.1" # "141.82.48.1" (YOU NEED TO EDIT THIS!)
 output_dir_base="/home/celemine1gig/gnublin_debian_build" # where to put the files in general (YOU NEED TO EDIT THIS!)
 use_udev="no" # for the 8MB Gnublin, say "no" here, whereas the 32MB version of Gnublin is fine running udev (YOU NEED TO EDIT THIS!)
+bootloader_bin_path="http://www.hs-augsburg.de/~ingmar_k/gnublin/bootloader" # where to get the bootloader (belongs to the setting below and DOES NOT NEED to be edited)
+bootloader_bin_name="apex_8MB.bin" # bootloader binary: 'apex_8MB.bin' for the 8MB Gnublin and 'apex_32MB.bin' for the 32MB version! (YOU NEED TO EDIT THIS!)
 
 
 ### These settings are for experienced users ###
@@ -35,12 +37,6 @@ qemu_kernel_pkg_name="kernel_3.3.0-gnublin-qemu-1.0_1348953287.tar.bz2" # qemu k
 std_kernel_pkg_path="http://www.hs-augsburg.de/~ingmar_k/gnublin/kernels/3.3.0" # where to get the standard kernel
 
 std_kernel_pkg_name="kernel_3.3.0-gnublin-debian-tiny-1.0_1349121494.tar.bz2" # standard kernel file name
-
-
-bootloader_bin_path="http://www.hs-augsburg.de/~ingmar_k/gnublin/bootloader" # where to get the bootloader
-
-bootloader_bin_name="apex_8MB.bin" # bootloader binary
-
 
 tar_format="bz2" # bz2(=bzip2) or gz(=gzip)
 
