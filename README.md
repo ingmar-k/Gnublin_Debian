@@ -113,14 +113,15 @@ Or you can pass the complete path+filename of a compressed (.tar.gz or .tar.bz2)
 
 **Usage examples:**
 
-**`sudo ./build_debian_system.sh build`**  will run only the scripts build funtions to create a rootfs-archive according to your settings.
+**`sudo ./build_debian_system.sh --build`**  will run only the scripts build funtions to create a rootfs-archive according to your settings.
 
-**`sudo ./build_debian_system.sh install default`** will create a bootable SD-card containing the default-rootfs and bootloader specified in the "general_settings.sh"
+**`sudo ./build_debian_system.sh --install default`** will create a bootable SD-card containing the default-rootfs and bootloader specified in the "general_settings.sh"
 
-**`sudo ./build_debian_system.sh install http://www.tester.com/rootfs.tar.bz2`** will download the named rootfs-archive and create a bootable SD-card with it (bootloader as set per "general_settings.sh")
+**`sudo ./build_debian_system.sh --install http://www.tester.com/rootfs.tar.bz2`** will download the named rootfs-archive and create a bootable SD-card with it (bootloader as set per "general_settings.sh")
 
+**`sudo ./build_debian_system.sh --install http://www.tester.com/rootfs.tar.bz2 --bootloader http://www.tester.com/apex_32MB.bin`** will download the named rootfs-archive and create a bootable SD-card with the specified bootloader
 
-**Any wrong parameters should trigger lead to an error message and a short help text, explaining the valid usage options.**
+**Any wrong parameter leads to an error message and a short help text, explaining the valid usage options.**
 
 
 

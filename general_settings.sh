@@ -59,7 +59,7 @@ base_packages_with_udev="apt-utils dialog locales udev mingetty"
 
 clean_tmp_files="yes" # delete the temporary files, when the build process is done?
 
-create_disk="yes" # create a bootable SD-card after building the rootfs?
+create_disk="no" # create a bootable SD-card after building the rootfs?
 
 
 

@@ -28,15 +28,35 @@ then
 	fi
 	regular_cleanup
 	
-elif [ "$1" = "build" ] && [ -z "$2" ]  # case of just wanting to build a compressed rootfs archive
+elif [ \( "$1" = "--build" -o "$1" = "-b" \) -a -z "$2" ]  # case of just wanting to build a compressed rootfs archive
 then
 	param_1="build"
 	prep_output
 	build_rootfs
 	regular_cleanup
 	
-elif [ "$1" = "install" ] && [ ! -z "$2" ]
+elif [ \( "$1" = "--install" -o "$1" = "-i" \) -a ! -z "$2" ] # case of wanting to install a existing rootfs-image to sd-card
 then
+	if [ \( "$3" = "--bootloader" -o "$3" = "-bl" \) -a ! -z "$4" ] # case of additionally telling the script directly what bootloader binary to use
+	then
+		if [ "$4" = "8MB" -o "$4" = "32MB" ] # case of using the default bootloader for the 8MB or 32MB Gnublin
+		then
+			bootloader_bin_name="apex_${4}.bin"
+		elif [ -z "$4" ] # case of forgotten parameter for the bootloader
+		then
+			echo "You seem to have called the script with the '--install' AND additional '--bootloader 'parameter.
+'--bootloader' requires either the location of the bootloader binary file OR '8MB' or '32MB', for your gnublin version, as an additional parameter.
+Please rerun the script accordingly.
+For example:
+sudo ./build_debian_system.sh install 'http://www.hs-augsburg.de/~ingmar_k/gnublin/rootfs_packages/8MB/debian_rootfs_gnublin_1349121567.tar.bz2' --bootloader 'http://www.hs-augsburg.de/~ingmar_k/gnublin/bootloader/apex_8MB.bin'
+"
+			exit 1
+		else # case of using a non-default bootloader binary
+			bootloader_bin_path=${4%/*}
+			bootloader_bin_name=${4##*/}
+		fi
+	fi
+
 	prep_output
 	fn_my_echo "Running the script in install-only mode!
 Just creating a complete, fully bootable sd-card."
@@ -62,31 +82,32 @@ Just creating a complete, fully bootable sd-card."
 	else
 		fn_my_echo "The variable rootfs_package_name seems to point to a file that is neither a '.tar.bz2' nor a '.tar.gz' package.
 Please check! Exiting now."
-		exit 1
+		exit 2
 	fi
 	create_sd_card
 	regular_cleanup
 	
-elif [ "$1" = "install" ] && [ -z "$2" ]
+elif [ "$1" = "--install" -o "$1" = "-i" ] -a [ -z "$2" ]
 then
-	echo "You seem to have called the script with the 'install' parameter.
+	echo "You seem to have called the script with the '--install' parameter.
 This requires the location of the compressed rootfs archive as second parameter.
 Please rerun the script accordingly.
 For example:
-sudo ./build_debian_system.sh install 'http://www.hs-augsburg.de/~ingmar_k/gnublin/rootfs_packages/8MB/debian_rootfs_gnublin_1349121567.tar.bz2'
+sudo ./build_debian_system.sh --install 'http://www.hs-augsburg.de/~ingmar_k/gnublin/rootfs_packages/8MB/debian_rootfs_gnublin_1349121567.tar.bz2'
 "
-	exit 2
+	exit 3
 else
 	echo "'$0' was called with parameter '$1', which does not seem to be a correct parameter.
 	
 Correct parameters are:
 -----------------------
-build : If you only want to build a compressed rootfs archive (for example for later use), according to the setting in 'general_settings.sh'.
-install 'archivename': if you only want to create a bootable SD-card with an already existing rootfs-package (tar.bz2 or tar.gz compressed archive).
+Parameter 1: --build OR -b (If you only want to build a compressed rootfs archive for example for later use, according to the settings in 'general_settings.sh'.)
+Parameter 1: --install 'archivename' OR -i 'archivename' (if you only want to create a bootable SD-card with an already existing rootfs-package, tar.bz2 or tar.gz compressed archive)
+Parameter 2: --bootloader 'binary name' OR -bl 'binary name' (if you want to specify a Bootloader binary directly. It can either be a local file or link to an online source)
 -----------------------
 Besides that you can also run '$0' without any parameters, for the full functionality, according to the settings in 'general_settings'.
 Exiting now!"
-	exit 3
+	exit 4
 fi
 
 

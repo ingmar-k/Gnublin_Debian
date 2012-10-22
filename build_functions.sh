@@ -24,7 +24,7 @@ then
 	echo "Output directory '${output_dir}' successfully created."
 else
 	echo "ERROR while trying to create the output directory '${output_dir}'. Exiting now!"
-	exit 4
+	exit 5
 fi
 
 
@@ -34,7 +34,7 @@ then
 	echo "Subfolder 'tmp' of output directory '${output_dir}' successfully created."
 else
 	echo "ERROR while trying to create the 'tmp' subfolder '${output_dir}/tmp'. Exiting now!"
-	exit 5
+	exit 6
 fi
 }
 
@@ -131,10 +131,10 @@ do
 	else
 		fn_my_echo "Package '${1}' is not installed yet.
 Trying to install it now!"
-		if [ ! "${apt-get-update_done}" = "true" ]
+		if [ ! "${apt_get_update_done}" = "true" ]
 		then
 			apt-get update
-			apt-get-update_done="true"
+			apt_get_update_done="true"
 		fi
 		apt-get install -y ${1}
 		if [ "$?" = "0" ]
