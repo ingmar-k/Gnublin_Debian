@@ -604,6 +604,11 @@ fi
 
 sed_search_n_replace "mkdir /lib/init/rw/sendsigs.omit.d/" "if [ ! -d  /lib/init/rw/sendsigs.omit.d/ ]; then mkdir /lib/init/rw/sendsigs.omit.d/; fi;" ${output_dir}/mnt_debootstrap/etc/init.d/mountkernfs.sh
 
+cat <<END > ${output_dir}/mnt_debootstrap/etc/network/interfaces
+auto lo
+iface lo inet loopback
+END
+
 sleep 1
 
 umount_img all
