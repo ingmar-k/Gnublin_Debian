@@ -275,6 +275,7 @@ mknod /dev/sda b 8 0	# SCSI storage device
 mknod /dev/sda1 b 8 1
 mknod /dev/sda2 b 8 2
 mknod /dev/sda3 b 8 3
+mknod /dev/lpc313x_adc c 253 0
 ln -s /dev/rtc0 /dev/rtc
 
 cat <<END > /etc/network/interfaces
