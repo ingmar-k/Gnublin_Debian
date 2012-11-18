@@ -40,7 +40,12 @@ std_kernel_pkg_name="kernel_3.3.0-gnublin-debian-tiny-1.0_1349121494.tar.bz2" # 
 
 tar_format="bz2" # bz2(=bzip2) or gz(=gzip)
 
-output_dir="${output_dir_base}/build_`date +%s`" # Subdirectory for each build-run, ending with the unified Unix-Timestamp (seconds passed since Jan 01 1970)
+if [ "${output_dir_base:(-1):1}" = "/" ]
+then
+	output_dir="${output_dir_base}build_`date +%s`" # Subdirectory for each build-run, ending with the unified Unix-Timestamp (seconds passed since Jan 01 1970)
+else
+	output_dir="${output_dir_base}/build_`date +%s`" # Subdirectory for each build-run, ending with the unified Unix-Timestamp (seconds passed since Jan 01 1970)
+fi
 
 work_image_size_MB=1024 # size of the temporary image file, in which the installation process is carried out
 
