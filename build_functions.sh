@@ -739,12 +739,12 @@ Type anything else and/or hit Enter to cancel!"
 			fn_my_echo "SD-card device set to '${device}', according to user input."
 			parted -s ${device} mklabel msdos
 			# first partition = root (rest of the drive size)
-			parted --align=opt -- ${device} unit MB mkpart primary ext3 1 -132
-			# second partition = boot (raw, 4MB)
-			parted -s --align=opt -- ${device} unit MB mkpart primary ext2 -132 -128
+			parted --align=opt -- ${device} unit MB mkpart primary ext3 1 -`expr ${size_boot_partition} + ${size_swap_partition}`
+			# second partition = boot (raw, size = ${size_boot_partition} )
+			parted -s --align=opt -- ${device} unit MB mkpart primary ext2 --`expr ${size_boot_partition} + ${size_swap_partition}` -${size_swap_partition}
 			parted -s -- ${device} set 2 boot on
-			# last partition = swap	(128MB)
-			parted -s --align=opt -- ${device} unit MB mkpart primary linux-swap -128 -0
+			# last partition = swap (swap, size = ${size_swap_partition} )
+			parted -s --align=opt -- ${device} unit MB mkpart primary linux-swap -${size_swap_partition} -0
 			echo ">>> ${device} Partition table is now:"
 			parted -s ${device} unit MB print
 		else
