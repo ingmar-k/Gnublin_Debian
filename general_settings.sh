@@ -113,6 +113,12 @@ rtc_kernel_module_name="rtc-ds1307" # kernel module name of the hardware RTC (if
 udev_tmpfs_size="3M" # default setting in udev is "10M", which is wasting RAM on the Gnublin
 
 
+### Partition setting ###
+# Comment: size of the rooot partition doesn't get set directly, but is computed through the following formula:
+# root partition = size_of_sd_card - (size_boot_partition + size_swap_partition)
+size_boot_partition="4"   # size of the boot partition, in MB (MegaByte)
+size_swap_partition="128"   # size of the swap partition, in MB (MegaByte)
+
 
 ####################################
 ##### "INSTALL ONLY" SETTINGS: #####
