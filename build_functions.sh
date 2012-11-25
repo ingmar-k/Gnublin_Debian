@@ -741,7 +741,7 @@ Type anything else and/or hit Enter to cancel!"
 			# first partition = root (rest of the drive size)
 			parted --align=opt -- ${device} unit MB mkpart primary ext3 1 -`expr ${size_boot_partition} + ${size_swap_partition}`
 			# second partition = boot (raw, size = ${size_boot_partition} )
-			parted -s --align=opt -- ${device} unit MB mkpart primary ext2 --`expr ${size_boot_partition} + ${size_swap_partition}` -${size_swap_partition}
+			parted -s --align=opt -- ${device} unit MB mkpart primary ext2 -`expr ${size_boot_partition} + ${size_swap_partition}` -${size_swap_partition}
 			parted -s -- ${device} set 2 boot on
 			# last partition = swap (swap, size = ${size_swap_partition} )
 			parted -s --align=opt -- ${device} unit MB mkpart primary linux-swap -${size_swap_partition} -0
