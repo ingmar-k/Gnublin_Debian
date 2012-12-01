@@ -153,7 +153,7 @@ If your host system is not Ubuntu 10.XX based, this could lead to errors. Please
 		fi
 	fi
 
-	if [ $1 = "qemu-user-static" ] && [ "${host_os}" = "Debian" ]
+	if [ $1 = "qemu-user-static" ]
 	then
 		sh -c "dpkg -l|grep "qemu-user-static"|grep "1."" >/dev/null
 		if [ $? = "0" ]
@@ -162,8 +162,8 @@ If your host system is not Ubuntu 10.XX based, this could lead to errors. Please
 		else
 			fn_my_echo "The installed version of package '${1}' is too old.
 You need to install a package with a version of at least 1.0.
-For example from the debian-testing repositiories.
-Link: 'http://packages.debian.org/search?keywords=qemu&searchon=names&suite=testing&section=all'
+For example from the debian-testing ('http://packages.debian.org/search?keywords=qemu&searchon=names&suite=testing&section=all')
+respectivly the Ubuntu precise ('http://packages.ubuntu.com/search?keywords=qemu&searchon=names&suite=precise&section=all') repositiories.
 Exiting now!"
 			exit 15
 		fi
